@@ -36,7 +36,7 @@ local function RGBText(obj)
 end
 
 -- =====================
--- DRAG SYSTEM (PC + MOBILE OPTIMISÉ)
+-- DRAG SYSTEM
 -- =====================
 
 local function MakeDraggable(frame, dragBar)
@@ -181,17 +181,20 @@ stealBtn.MouseButton1Click:Connect(function()
         return
     end
 
-    stealBtn.Text = "Stealing..."
-    task.wait(1)
-
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
+
+    local oldCFrame = root.CFrame
+
+    stealBtn.Text = "Stealing..."
 
     root.CFrame = CFrame.new(savedPosition)
 
     task.wait(0.5)
 
-    player:Kick("successfuly steal made by nethers 🔥")
+    root.CFrame = oldCFrame
+
+    stealBtn.Text = "Instant Steal"
 end)
 
 dashBtn.MouseButton1Click:Connect(function()

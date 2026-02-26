@@ -1,104 +1,209 @@
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
-
+local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 
-local tpPosition = hrp.CFrame
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
 
--- GUI
-local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "NethersTP"
+-- =====================
+-- RGB BORDER / TEXT
+-- =====================
+local function RGBStroke(obj)
+    local stroke = Instance.new("UIStroke", obj)
+    stroke.Thickness = 2
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 200, 0, 180)
-frame.Position = UDim2.new(0.5, -100, 0.5, -90)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.BorderSizePixel = 0
-
-local function makeButton(text, y)
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(1, -20, 0, 30)
-    btn.Position = UDim2.new(0, 10, 0, y)
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(60,120,255)
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.BorderSizePixel = 0
-    return btn
+    task.spawn(function()
+        local h = 0
+        while obj.Parent do
+            stroke.Color = Color3.fromHSV(h,1,1)
+            h = (h + 0.01) % 1
+            task.wait()
+        end
+    end)
 end
 
-local setTP = makeButton("Set TP", 10)
-local normalTP = makeButton("TP", 50)
-local forwardBtn = makeButton("TP Forward", 90)
+local function RGBText(obj)
+    task.spawn(function()
+        local h = 0
+        while obj.Parent do
+            obj.TextColor3 = Color3.fromHSV(h,1,1)
+            h = (h + 0.01) % 1
+            task.wait()
+        end
+    end)
+end
 
-local credit = Instance.new("TextLabel", frame)
-credit.Size = UDim2.new(1, 0, 0, 20)
-credit.Position = UDim2.new(0, 0, 1, -20)
+-- =====================
+-- DRAG SYSTEM
+-- =====================
+local function MakeDraggable(frame, dragBar)
+    local dragging = false
+    local dragInput, startPos, startFramePos
+
+    dragBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            startPos = input.Position
+            startFramePos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    dragBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - startPos
+            frame.Position = UDim2.new(
+                startFramePos.X.Scale,
+                startFramePos.X.Offset + delta.X,
+                startFramePos.Y.Scale,
+                startFramePos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+-- =====================
+-- UI
+-- =====================
+local gui = Instance.new("ScreenGui", PlayerGui)
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 360, 0, 270)
+main.Position = UDim2.new(.5,0,.5,0)
+main.AnchorPoint = Vector2.new(.5,.5)
+main.BackgroundColor3 = Color3.fromRGB(10,10,10)
+main.BorderSizePixel = 0
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
+RGBStroke(main)
+
+local top = Instance.new("Frame", main)
+top.Size = UDim2.new(1,0,0,40)
+top.BackgroundTransparency = 1
+
+local title = Instance.new("TextLabel", top)
+title.Size = UDim2.new(1,0,1,0)
+title.BackgroundTransparency = 1
+title.Text = "Nethers Instant Steal"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextColor3 = Color3.new(1,1,1)
+
+-- MADE BY NETHERS TEXT RGB
+local credit = Instance.new("TextLabel", main)
+credit.Size = UDim2.new(1,0,0,20)
+credit.Position = UDim2.new(0,0,0,22)
 credit.BackgroundTransparency = 1
-credit.Text = "Made by Nethers"
-credit.TextColor3 = Color3.fromRGB(180,180,180)
-credit.Font = Enum.Font.SourceSans
-credit.TextSize = 14
+credit.Text = "made by nethers 🔥"
+credit.Font = Enum.Font.Gotham
+credit.TextSize = 12
+credit.TextStrokeTransparency = 0.8
+RGBText(credit)
+
+MakeDraggable(main, top)
+
+-- =====================
+-- VARIABLES
+-- =====================
+local savedPosition = nil
+local dashDistance = 20 -- studs forward
+
+-- =====================
+-- BUTTONS
+-- =====================
 
 -- SET TP
-setTP.MouseButton1Click:Connect(function()
-    tpPosition = hrp.CFrame
+local setBtn = Instance.new("TextButton", main)
+setBtn.Size = UDim2.new(.8,0,0,50)
+setBtn.Position = UDim2.new(.1,0,.35,0)
+setBtn.Text = "Set TP"
+setBtn.Font = Enum.Font.GothamBold
+setBtn.TextSize = 16
+setBtn.TextColor3 = Color3.new(1,1,1)
+setBtn.BackgroundColor3 = Color3.fromRGB(20,20,20)
+setBtn.BorderSizePixel = 0
+Instance.new("UICorner", setBtn).CornerRadius = UDim.new(0,10)
+RGBStroke(setBtn)
+
+-- INSTANT STEAL
+local tpBtn = Instance.new("TextButton", main)
+tpBtn.Size = UDim2.new(.8,0,0,50)
+tpBtn.Position = UDim2.new(.1,0,.55,0)
+tpBtn.Text = "Instant Steal"
+tpBtn.Font = Enum.Font.GothamBold
+tpBtn.TextSize = 16
+tpBtn.TextColor3 = Color3.new(1,1,1)
+tpBtn.BackgroundColor3 = Color3.fromRGB(20,20,20)
+tpBtn.BorderSizePixel = 0
+Instance.new("UICorner", tpBtn).CornerRadius = UDim.new(0,10)
+RGBStroke(tpBtn)
+
+-- TP FORWARD (DASH)
+local dashBtn = Instance.new("TextButton", main)
+dashBtn.Size = UDim2.new(.8,0,0,50)
+dashBtn.Position = UDim2.new(.1,0,.75,0)
+dashBtn.Text = "TP Forward (Dash)"
+dashBtn.Font = Enum.Font.GothamBold
+dashBtn.TextSize = 16
+dashBtn.TextColor3 = Color3.new(1,1,1)
+dashBtn.BackgroundColor3 = Color3.fromRGB(20,20,20)
+dashBtn.BorderSizePixel = 0
+Instance.new("UICorner", dashBtn).CornerRadius = UDim.new(0,10)
+RGBStroke(dashBtn)
+
+-- =====================
+-- LOGIC
+-- =====================
+
+-- Save Position
+setBtn.MouseButton1Click:Connect(function()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+
+    savedPosition = root.Position
+    setBtn.Text = "Position Saved!"
+    task.wait(1)
+    setBtn.Text = "Set TP"
 end)
 
--- TP TEMPORAIRE
-local function doTempTP()
-    local old = hrp.CFrame
-    hrp.CFrame = tpPosition
+-- Instant Steal
+tpBtn.MouseButton1Click:Connect(function()
+
+    if not savedPosition then
+        tpBtn.Text = "No Position Saved!"
+        task.wait(1)
+        tpBtn.Text = "Instant Steal"
+        return
+    end
+
+    tpBtn.Text = "Stealing..."
+    task.wait(2)
+
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+
+    root.CFrame = CFrame.new(savedPosition)
+
     task.wait(0.5)
-    hrp.CFrame = old
-end
+    player:Kick("successfuly steal taxed by nethers 🔥 | made by nethers")
+end)
 
--- TP NORMAL
-local function doNormalTP()
-    hrp.CFrame = tpPosition
-end
+-- TP Forward / Dash
+dashBtn.MouseButton1Click:Connect(function()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
 
--- NOCLIP UTILS
-local function setCollision(state)
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = state
-        end
-    end
-end
-
--- TP FORWARD AVEC NOCLIP
-local function tpForward(distance, steps)
-    distance = distance or 8
-    steps = steps or 25
-    
-    local stepSize = distance / steps
-    
-    setCollision(false) -- noclip ON
-    
-    for i = 1, steps do
-        hrp.CFrame = hrp.CFrame + (hrp.CFrame.LookVector * stepSize)
-        task.wait()
-    end
-    
-    setCollision(true) -- noclip OFF
-end
-
--- BOUTONS
-normalTP.MouseButton1Click:Connect(doNormalTP)
-forwardBtn.MouseButton1Click:Connect(tpForward)
-
--- TOUCHES CLAVIER
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    
-    if input.KeyCode == Enum.KeyCode.F then
-        doTempTP()
-        
-    elseif input.KeyCode == Enum.KeyCode.G then
-        doNormalTP()
-        
-    elseif input.KeyCode == Enum.KeyCode.R then
-        tpForward()
-    end
+    -- Calcul du dash forward
+    local forwardVector = root.CFrame.LookVector
+    local newPosition = root.Position + forwardVector * dashDistance
+    root.CFrame = CFrame.new(newPosition)
 end)

@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
@@ -89,7 +90,7 @@ gui.Parent = PlayerGui
 gui.ResetOnSpawn = false
 
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 360, 0, 260)
+main.Size = UDim2.new(0, 360, 0, 310)
 main.Position = UDim2.new(.5,0,.5,0)
 main.AnchorPoint = Vector2.new(.5,.5)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
@@ -132,6 +133,7 @@ MakeDraggable(main, top)
 
 local savedPosition = nil
 local dashDistance = 20
+local noclipEnabled = false
 
 -- =====================
 -- BUTTON CREATOR
@@ -155,9 +157,10 @@ local function createButton(text, posY)
     return btn
 end
 
-local setBtn = createButton("Set Position", 0.25)
-local stealBtn = createButton("Instant Steal", 0.45)
-local dashBtn = createButton("Dash Forward", 0.65)
+local setBtn = createButton("Set Position", 0.22)
+local stealBtn = createButton("Instant Steal", 0.40)
+local dashBtn = createButton("Dash Forward", 0.58)
+local noclipBtn = createButton("No Clip : OFF", 0.76)
 
 -- =====================
 -- LOGIC
@@ -187,11 +190,8 @@ stealBtn.MouseButton1Click:Connect(function()
     local oldCFrame = root.CFrame
 
     stealBtn.Text = "Stealing..."
-
     root.CFrame = CFrame.new(savedPosition)
-
     task.wait(0.5)
-
     root.CFrame = oldCFrame
 
     stealBtn.Text = "Instant Steal"
@@ -200,6 +200,28 @@ end)
 dashBtn.MouseButton1Click:Connect(function()
     local char = player.Character or player.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
-
     root.CFrame = root.CFrame + root.CFrame.LookVector * dashDistance
+end)
+
+noclipBtn.MouseButton1Click:Connect(function()
+    noclipEnabled = not noclipEnabled
+    
+    if noclipEnabled then
+        noclipBtn.Text = "No Clip : ON"
+    else
+        noclipBtn.Text = "No Clip : OFF"
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if noclipEnabled then
+        local char = player.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
 end)

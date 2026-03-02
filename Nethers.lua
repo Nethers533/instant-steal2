@@ -4,31 +4,26 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
 -- ==========================================
--- SYSTEME DE WHITELIST (VÉRIFICATION FINALE)
+-- SYSTEME DE WHITELIST
 -- ==========================================
 local WhitelistedIDs = {
     [2354866600] = true, -- Ton ID
     [7714389292] = true  -- ID de ton ami
 }
 
--- Vérification immédiate
 if not WhitelistedIDs[player.UserId] then
-    -- 1. Jouer le son "oi-oi-oe"
     local sound = Instance.new("Sound")
     sound.SoundId = "rbxassetid://135431631525798"
     sound.Volume = 10
     sound.Parent = game:GetService("SoundService")
     sound:Play()
-    
     task.wait(0.1)
-    
-    -- 2. Kick direct avec lien Discord
     player:Kick("\n[SECURITY]\nNot Whitelisted.\nYour ID: "..player.UserId.."\nBuy: https://discord.gg/QbAe3zKW")
     return
 end
 
 -- ==========================================
--- LE RESTE DU SCRIPT (Accès Autorisé)
+-- CONFIGURATION & VARIABLES
 -- ==========================================
 local Hauteur = 30       
 local Recul = 94         
@@ -36,9 +31,9 @@ local Lateral = -337.0
 local TARGET_POS = CFrame.new(Lateral, Hauteur, Recul)
 
 local savedPos = nil 
-local noclip = false 
+local noclipActive = false 
 
--- Fonction RGB pour le style
+-- Fonction RGB
 local function RGBStroke(obj)
     local stroke = Instance.new("UIStroke")
     stroke.Thickness = 2
@@ -54,46 +49,38 @@ local function RGBStroke(obj)
     end)
 end
 
--- Nettoyage ForceField
-local function removeGlow(char)
-    task.wait(0.1)
-    if char then
-        for _, v in pairs(char:GetChildren()) do
-            if v:IsA("ForceField") then v:Destroy() end
-        end
-    end
-end
-
--- Boucle Noclip
+-- Boucle No Clip
 RunService.Stepped:Connect(function()
-    if noclip and player.Character then
+    if noclipActive and player.Character then
         for _, v in pairs(player.Character:GetDescendants()) do
             if v:IsA("BasePart") then v.CanCollide = false end
         end
     end
 end)
 
--- Gestion Spawn
-player.CharacterAdded:Connect(function(char)
-    removeGlow(char)
+-- Gestion Spawn & Glow
+local function setupChar(char)
+    task.wait(0.1)
+    for _, v in pairs(char:GetChildren()) do
+        if v:IsA("ForceField") then v:Destroy() end
+    end
     local root = char:WaitForChild("HumanoidRootPart", 5)
     if root then task.wait(0.5) savedPos = root.CFrame end
-end)
-
-if player.Character then 
-    removeGlow(player.Character)
-    local r = player.Character:FindFirstChild("HumanoidRootPart") 
-    if r then savedPos = r.CFrame end 
 end
 
--- CRÉATION DE L'UI
+player.CharacterAdded:Connect(setupChar)
+if player.Character then setupChar(player.Character) end
+
+-- ==========================================
+-- INTERFACE GRAPHIQUE
+-- ==========================================
 local gui = Instance.new("ScreenGui")
 gui.Name = "NethersStealGui"
 gui.Parent = player:WaitForChild("PlayerGui")
 gui.ResetOnSpawn = false
 
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 360, 0, 240)
+main.Size = UDim2.new(0, 360, 0, 310) 
 main.Position = UDim2.new(.5,0,.5,0)
 main.AnchorPoint = Vector2.new(.5,.5)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
@@ -127,8 +114,8 @@ UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputT
 
 local function createButton(text, posY)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(.8,0,0,55)
-    btn.Position = UDim2.new(.1,0,posY,0)
+    btn.Size = UDim2.new(.8,0,0,50)
+    btn.Position = UDim2.new(.1,0,0,posY)
     btn.Text = text
     btn.Font = Enum.Font.GothamBold
     btn.TextColor3 = Color3.new(1,1,1)
@@ -139,18 +126,24 @@ local function createButton(text, posY)
     return btn
 end
 
-local bestBtn = createButton("TP TO BEST BRAINROT", 0.25)
-local stealBtn = createButton("INSTANT STEAL", 0.60)
+-- ORDRE CHANGÉ ICI
+local bestBtn = createButton("TP TO BEST BRAINROT", 70)
+local stealBtn = createButton("INSTANT STEAL", 135)
+local noclipBtn = createButton("TOGGLE NO CLIP: OFF", 200)
+
+-- ==========================================
+-- LOGIQUE DES BOUTONS
+-- ==========================================
 
 bestBtn.MouseButton1Click:Connect(function()
     local char = player.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     if root then
-        noclip = true 
+        local oldNoclip = noclipActive
+        noclipActive = true 
         root.CFrame = TARGET_POS
-        removeGlow(char)
         task.wait(0.5) 
-        noclip = false
+        noclipActive = oldNoclip
         bestBtn.Text = "TP SUCCESS"
         task.wait(0.8)
         bestBtn.Text = "TP TO BEST BRAINROT"
@@ -167,8 +160,19 @@ stealBtn.MouseButton1Click:Connect(function()
         root.CFrame = old
         stealBtn.Text = "STEAL SUCCESS!"
     else
-        stealBtn.Text = "WAIT FOR SPAWN..."
+        stealBtn.Text = "ERROR: NO SPAWN"
     end
     task.wait(0.8)
     stealBtn.Text = "INSTANT STEAL"
+end)
+
+noclipBtn.MouseButton1Click:Connect(function()
+    noclipActive = not noclipActive
+    if noclipActive then
+        noclipBtn.Text = "TOGGLE NO CLIP: ON"
+        noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+    else
+        noclipBtn.Text = "TOGGLE NO CLIP: OFF"
+        noclipBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    end
 end)

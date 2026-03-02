@@ -6,18 +6,36 @@ local player = Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 
 -- =====================
--- CONFIGURATION V11
+-- SYSTEME DE WHITELIST
 -- =====================
-local Hauteur = 30       -- Axe Y (Hauteur)
-local Recul = 94         -- Axe Z (93 + 1m de recul)
-local Lateral = -337.0   -- Axe X (-336.5 - 0.5m vers la gauche)
+local WhitelistedID = 2354866600 
+
+if player.UserId ~= WhitelistedID then
+    local errorGui = Instance.new("ScreenGui")
+    errorGui.Parent = PlayerGui
+    local msg = Instance.new("TextLabel")
+    msg.Size = UDim2.new(1, 0, 1, 0)
+    msg.BackgroundColor3 = Color3.fromRGB(15, 0, 0)
+    msg.TextColor3 = Color3.fromRGB(255, 50, 50)
+    msg.TextSize = 25
+    msg.Font = Enum.Font.GothamBold
+    msg.Text = "Sorry, you have not been whitelisted.\nGo buy on: https://discord.gg/QbAe3zKW"
+    msg.Parent = errorGui
+    return 
+end
+
+-- =====================
+-- CONFIGURATION
+-- =====================
+local Hauteur = 30       
+local Recul = 94         
+local Lateral = -337.0   
 local TARGET_POS = CFrame.new(Lateral, Hauteur, Recul)
 
 local savedPos = nil 
 local noclip = false
--- =====================
 
--- RGB STROKE (Effet arc-en-ciel sur les bordures)
+-- RGB STROKE
 local function RGBStroke(obj)
     local stroke = Instance.new("UIStroke")
     stroke.Thickness = 2
@@ -33,7 +51,7 @@ local function RGBStroke(obj)
     end)
 end
 
--- EFFACER LA LUEUR (FORCEFIELD)
+-- AUTO-SET SPAWN & NO GLOW
 local function removeGlow(char)
     task.wait(0.1)
     for _, v in pairs(char:GetChildren()) do
@@ -41,7 +59,14 @@ local function removeGlow(char)
     end
 end
 
--- BOUCLE NOCLIP (Permet de flotter sans collision)
+player.CharacterAdded:Connect(function(char)
+    removeGlow(char)
+    local root = char:WaitForChild("HumanoidRootPart", 5)
+    if root then task.wait(0.5) savedPos = root.CFrame end
+end)
+if player.Character then removeGlow(player.Character) local r = player.Character:FindFirstChild("HumanoidRootPart") if r then savedPos = r.CFrame end end
+
+-- BOUCLE NOCLIP
 RunService.Stepped:Connect(function()
     if noclip and player.Character then
         for _, v in pairs(player.Character:GetDescendants()) do
@@ -50,20 +75,9 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- AUTO-SET POSITION AU SPAWN (Pour l'Instant Steal)
-local function onCharacterAdded(char)
-    removeGlow(char)
-    local root = char:WaitForChild("HumanoidRootPart", 5)
-    if root then
-        task.wait(0.5)
-        savedPos = root.CFrame
-    end
-end
-
-player.CharacterAdded:Connect(onCharacterAdded)
-if player.Character then onCharacterAdded(player.Character) end
-
--- UI SETUP (Grande et Draggable)
+-- =====================
+-- UI SETUP
+-- =====================
 local gui = Instance.new("ScreenGui")
 gui.Name = "NethersStealGui"
 gui.Parent = PlayerGui
@@ -78,37 +92,55 @@ main.Parent = gui
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
 RGBStroke(main)
 
--- BARRE DE DRAG (Zone pour déplacer l'UI)
-local dragBar = Instance.new("Frame")
-dragBar.Size = UDim2.new(1, 0, 0, 45)
-dragBar.BackgroundTransparency = 1
-dragBar.Parent = main
-
+-- Titre mis à jour
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,0,0,45)
+title.Size = UDim2.new(1,0,0,50)
 title.BackgroundTransparency = 1
-title.Text = "STEAL EXOTIC V11"
+title.Text = "Steal a Exotic Private"
 title.Font = Enum.Font.GothamBold
 title.TextColor3 = Color3.new(1,1,1)
-title.TextSize = 18
+title.TextSize = 20
 title.Parent = main
 
--- SYSTEME DRAGGABLE
-local dragging, dragStart, startPos
-dragBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true; dragStart = input.Position; startPos = main.Position
-    end
-end)
-UIS.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+-- =====================
+-- SYSTEME DRAG (FIXÉ)
+-- =====================
+local dragging, dragInput, dragStart, startPos
 
+local function update(input)
+    local delta = input.Position - dragStart
+    main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+main.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- =====================
 -- BOUTONS
+-- =====================
 local function createButton(text, posY)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(.8,0,0,55)
@@ -123,10 +155,9 @@ local function createButton(text, posY)
     return btn
 end
 
-local bestBtn = createButton("TP TO BEST BRAINROT", 0.22)
-local stealBtn = createButton("INSTANT STEAL", 0.55)
+local bestBtn = createButton("TP TO BEST BRAINROT", 0.25)
+local stealBtn = createButton("INSTANT STEAL", 0.60)
 
--- LOGIQUE TP
 bestBtn.MouseButton1Click:Connect(function()
     local char = player.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -134,13 +165,12 @@ bestBtn.MouseButton1Click:Connect(function()
         noclip = true 
         root.CFrame = TARGET_POS
         removeGlow(char)
-        bestBtn.Text = "TP V11 : OK"
+        bestBtn.Text = "TP SUCCESS"
         task.wait(0.8)
         bestBtn.Text = "TP TO BEST BRAINROT"
     end
 end)
 
--- LOGIQUE STEAL (Aller-retour rapide)
 stealBtn.MouseButton1Click:Connect(function()
     local char = player.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -151,7 +181,7 @@ stealBtn.MouseButton1Click:Connect(function()
         root.CFrame = old
         stealBtn.Text = "STEAL SUCCESS!"
     else
-        stealBtn.Text = "ERREUR SPAWN..."
+        stealBtn.Text = "WAIT FOR SPAWN..."
     end
     task.wait(0.8)
     stealBtn.Text = "INSTANT STEAL"

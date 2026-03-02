@@ -1,42 +1,35 @@
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-
 local player = Players.LocalPlayer
 
--- =====================
--- SYSTEME DE WHITELIST (VÉRIFICATION RENFORCÉE)
--- =====================
+-- ==========================================
+-- SYSTEME DE WHITELIST (VÉRIFICATION FINALE)
+-- ==========================================
 local WhitelistedIDs = {
-    ["2354866600"] = true, -- Ton ID
-    ["7714389292"] = true  -- ID de ton ami
+    [2354866600] = true, -- Ton ID
+    [7714389292] = true  -- ID de ton ami
 }
 
--- On attend que le UserId soit bien chargé par le moteur
-if not player.UserId or player.UserId == 0 then
-    task.wait(1)
-end
-
-local currentId = tostring(player.UserId)
-
-if not WhitelistedIDs[currentId] then
-    -- Son d'erreur
+-- Vérification immédiate
+if not WhitelistedIDs[player.UserId] then
+    -- 1. Jouer le son "oi-oi-oe"
     local sound = Instance.new("Sound")
     sound.SoundId = "rbxassetid://135431631525798"
     sound.Volume = 10
     sound.Parent = game:GetService("SoundService")
     sound:Play()
     
-    task.wait(0.2)
+    task.wait(0.1)
     
-    -- Kick immédiat
-    player:Kick("\n[SECURITY]\nAccess Denied.\nYour ID: " .. currentId .. "\nBuy here: https://discord.gg/QbAe3zKW")
-    return 
+    -- 2. Kick direct avec lien Discord
+    player:Kick("\n[SECURITY]\nNot Whitelisted.\nYour ID: "..player.UserId.."\nBuy: https://discord.gg/QbAe3zKW")
+    return
 end
 
--- =====================
--- CONFIGURATION POSITION
--- =====================
+-- ==========================================
+-- LE RESTE DU SCRIPT (Accès Autorisé)
+-- ==========================================
 local Hauteur = 30       
 local Recul = 94         
 local Lateral = -337.0   
@@ -45,6 +38,7 @@ local TARGET_POS = CFrame.new(Lateral, Hauteur, Recul)
 local savedPos = nil 
 local noclip = false 
 
+-- Fonction RGB pour le style
 local function RGBStroke(obj)
     local stroke = Instance.new("UIStroke")
     stroke.Thickness = 2
@@ -60,6 +54,7 @@ local function RGBStroke(obj)
     end)
 end
 
+-- Nettoyage ForceField
 local function removeGlow(char)
     task.wait(0.1)
     if char then
@@ -69,6 +64,7 @@ local function removeGlow(char)
     end
 end
 
+-- Boucle Noclip
 RunService.Stepped:Connect(function()
     if noclip and player.Character then
         for _, v in pairs(player.Character:GetDescendants()) do
@@ -77,6 +73,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
+-- Gestion Spawn
 player.CharacterAdded:Connect(function(char)
     removeGlow(char)
     local root = char:WaitForChild("HumanoidRootPart", 5)
@@ -89,9 +86,7 @@ if player.Character then
     if r then savedPos = r.CFrame end 
 end
 
--- =====================
--- INTERFACE GRAPHIQUE
--- =====================
+-- CRÉATION DE L'UI
 local gui = Instance.new("ScreenGui")
 gui.Name = "NethersStealGui"
 gui.Parent = player:WaitForChild("PlayerGui")
@@ -115,7 +110,7 @@ title.TextColor3 = Color3.new(1,1,1)
 title.TextSize = 20
 title.Parent = main
 
--- DRAG SYSTEM
+-- Drag System
 local dragging, dragStart, startPos
 main.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then

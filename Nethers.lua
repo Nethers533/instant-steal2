@@ -3,29 +3,33 @@ local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
-local PlayerGui = player:WaitForChild("PlayerGui")
 
 -- =====================
--- SYSTEME DE WHITELIST
+-- SYSTEME DE WHITELIST (VÉRIFIÉ)
 -- =====================
-local WhitelistedID = 2354866600 
+local WhitelistedIDs = {
+    [2354866600] = true, -- Ton ID
+    [7714389292] = true  -- ID de ton ami
+}
 
-if player.UserId ~= WhitelistedID then
-    local errorGui = Instance.new("ScreenGui")
-    errorGui.Parent = PlayerGui
-    local msg = Instance.new("TextLabel")
-    msg.Size = UDim2.new(1, 0, 1, 0)
-    msg.BackgroundColor3 = Color3.fromRGB(15, 0, 0)
-    msg.TextColor3 = Color3.fromRGB(255, 50, 50)
-    msg.TextSize = 25
-    msg.Font = Enum.Font.GothamBold
-    msg.Text = "Sorry, you have not been whitelisted.\nGo buy on: https://discord.gg/QbAe3zKW"
-    msg.Parent = errorGui
+-- Si l'ID du joueur n'est pas dans la liste
+if not WhitelistedIDs[player.UserId] then
+    -- Son d'erreur
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://135431631525798"
+    sound.Volume = 10
+    sound.Parent = game:GetService("SoundService")
+    sound:Play()
+    
+    task.wait(0.1)
+    
+    -- Kick immédiat
+    player:Kick("\n[SECURITY]\nSorry, you have not been whitelisted.\nGo buy on: https://discord.gg/QbAe3zKW")
     return 
 end
 
 -- =====================
--- CONFIGURATION
+-- CONFIGURATION POSITION
 -- =====================
 local Hauteur = 30       
 local Recul = 94         
@@ -33,9 +37,8 @@ local Lateral = -337.0
 local TARGET_POS = CFrame.new(Lateral, Hauteur, Recul)
 
 local savedPos = nil 
-local noclip = false
+local noclip = false 
 
--- RGB STROKE
 local function RGBStroke(obj)
     local stroke = Instance.new("UIStroke")
     stroke.Thickness = 2
@@ -51,22 +54,15 @@ local function RGBStroke(obj)
     end)
 end
 
--- AUTO-SET SPAWN & NO GLOW
 local function removeGlow(char)
     task.wait(0.1)
-    for _, v in pairs(char:GetChildren()) do
-        if v:IsA("ForceField") then v:Destroy() end
+    if char then
+        for _, v in pairs(char:GetChildren()) do
+            if v:IsA("ForceField") then v:Destroy() end
+        end
     end
 end
 
-player.CharacterAdded:Connect(function(char)
-    removeGlow(char)
-    local root = char:WaitForChild("HumanoidRootPart", 5)
-    if root then task.wait(0.5) savedPos = root.CFrame end
-end)
-if player.Character then removeGlow(player.Character) local r = player.Character:FindFirstChild("HumanoidRootPart") if r then savedPos = r.CFrame end end
-
--- BOUCLE NOCLIP
 RunService.Stepped:Connect(function()
     if noclip and player.Character then
         for _, v in pairs(player.Character:GetDescendants()) do
@@ -75,12 +71,24 @@ RunService.Stepped:Connect(function()
     end
 end)
 
+player.CharacterAdded:Connect(function(char)
+    removeGlow(char)
+    local root = char:WaitForChild("HumanoidRootPart", 5)
+    if root then task.wait(0.5) savedPos = root.CFrame end
+end)
+
+if player.Character then 
+    removeGlow(player.Character)
+    local r = player.Character:FindFirstChild("HumanoidRootPart") 
+    if r then savedPos = r.CFrame end 
+end
+
 -- =====================
--- UI SETUP
+-- INTERFACE GRAPHIQUE
 -- =====================
 local gui = Instance.new("ScreenGui")
 gui.Name = "NethersStealGui"
-gui.Parent = PlayerGui
+gui.Parent = player:WaitForChild("PlayerGui")
 gui.ResetOnSpawn = false
 
 local main = Instance.new("Frame")
@@ -92,7 +100,6 @@ main.Parent = gui
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
 RGBStroke(main)
 
--- Titre mis à jour
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,50)
 title.BackgroundTransparency = 1
@@ -102,45 +109,21 @@ title.TextColor3 = Color3.new(1,1,1)
 title.TextSize = 20
 title.Parent = main
 
--- =====================
--- SYSTEME DRAG (FIXÉ)
--- =====================
-local dragging, dragInput, dragStart, startPos
-
-local function update(input)
-    local delta = input.Position - dragStart
-    main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
-
+-- DRAG SYSTEM
+local dragging, dragStart, startPos
 main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = main.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true; dragStart = input.Position; startPos = main.Position
     end
 end)
-
-main.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
 UIS.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
+UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 
--- =====================
--- BOUTONS
--- =====================
 local function createButton(text, posY)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(.8,0,0,55)
@@ -165,6 +148,8 @@ bestBtn.MouseButton1Click:Connect(function()
         noclip = true 
         root.CFrame = TARGET_POS
         removeGlow(char)
+        task.wait(0.5) 
+        noclip = false
         bestBtn.Text = "TP SUCCESS"
         task.wait(0.8)
         bestBtn.Text = "TP TO BEST BRAINROT"

@@ -5,15 +5,21 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
 -- =====================
--- SYSTEME DE WHITELIST (VÉRIFIÉ)
+-- SYSTEME DE WHITELIST (VÉRIFICATION RENFORCÉE)
 -- =====================
 local WhitelistedIDs = {
-    [2354866600] = true, -- Ton ID
-    [7714389292] = true  -- ID de ton ami
+    ["2354866600"] = true, -- Ton ID
+    ["7714389292"] = true  -- ID de ton ami
 }
 
--- Si l'ID du joueur n'est pas dans la liste
-if not WhitelistedIDs[player.UserId] then
+-- On attend que le UserId soit bien chargé par le moteur
+if not player.UserId or player.UserId == 0 then
+    task.wait(1)
+end
+
+local currentId = tostring(player.UserId)
+
+if not WhitelistedIDs[currentId] then
     -- Son d'erreur
     local sound = Instance.new("Sound")
     sound.SoundId = "rbxassetid://135431631525798"
@@ -21,10 +27,10 @@ if not WhitelistedIDs[player.UserId] then
     sound.Parent = game:GetService("SoundService")
     sound:Play()
     
-    task.wait(0.1)
+    task.wait(0.2)
     
     -- Kick immédiat
-    player:Kick("\n[SECURITY]\nSorry, you have not been whitelisted.\nGo buy on: https://discord.gg/QbAe3zKW")
+    player:Kick("\n[SECURITY]\nAccess Denied.\nYour ID: " .. currentId .. "\nBuy here: https://discord.gg/QbAe3zKW")
     return 
 end
 

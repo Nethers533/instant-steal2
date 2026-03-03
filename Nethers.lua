@@ -2,38 +2,72 @@ local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local mouse = player:GetMouse()
 
 -- ==========================================
 -- SYSTEME DE WHITELIST
 -- ==========================================
 local WhitelistedIDs = {
-    [2354866600] = true, -- Ton ID
-    [7714389292] = true  -- ID de ton ami
+    [2354866600] = true,
+    [7714389292] = true
 }
 
 if not WhitelistedIDs[player.UserId] then
     local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://135431631525798"
+    sound.SoundId = "rbxassetid://135431631525798" 
     sound.Volume = 10
     sound.Parent = game:GetService("SoundService")
     sound:Play()
     task.wait(0.1)
-    player:Kick("\n[SECURITY]\nNot Whitelisted.\nYour ID: "..player.UserId.."\nBuy: https://discord.gg/QbAe3zKW")
+    player:Kick("\n[SECURITY]\nNot Whitelisted.\nBuy: https://discord.gg/QbAe3zKW")
     return
 end
 
 -- ==========================================
--- CONFIGURATION & VARIABLES
+-- CONFIGURATION : POSITIONS
 -- ==========================================
-local Hauteur = 30       
-local Recul = 94         
-local Lateral = -337.0   
-local TARGET_POS = CFrame.new(Lateral, Hauteur, Recul)
-
+local BASE_1_POS = Vector3.new(-489.01, 29.26, 124.6)
+local BASE_2_POS = Vector3.new(-488.11, 28.64, 17.6)
 local savedPos = nil 
-local noclipActive = false 
 
--- Fonction RGB
+-- ==========================================
+-- SYSTEME DE TRACERS (ESP)
+-- ==========================================
+local function createTracer(targetPos, labelText, color)
+    local line = Drawing.new("Line")
+    line.Thickness = 2
+    line.Color = color
+    line.Transparency = 0.8
+
+    local text = Drawing.new("Text")
+    text.Text = labelText
+    text.Size = 28
+    text.Center = true
+    text.Outline = true
+    text.Color = color
+
+    RunService.RenderStepped:Connect(function()
+        local screenPos, onScreen = camera:WorldToViewportPoint(targetPos)
+        if onScreen then
+            line.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+            line.To = Vector2.new(screenPos.X, screenPos.Y)
+            line.Visible = true
+            text.Position = Vector2.new(screenPos.X, screenPos.Y - 30)
+            text.Visible = true
+        else
+            line.Visible = false
+            text.Visible = false
+        end
+    end)
+end
+
+createTracer(BASE_1_POS, "BASE 1", Color3.fromRGB(0, 255, 0))
+createTracer(BASE_2_POS, "BASE 2", Color3.fromRGB(0, 150, 255))
+
+-- ==========================================
+-- INTERFACE GRAPHIQUE (STYLE ORIGINAL)
+-- ==========================================
 local function RGBStroke(obj)
     local stroke = Instance.new("UIStroke")
     stroke.Thickness = 2
@@ -49,38 +83,13 @@ local function RGBStroke(obj)
     end)
 end
 
--- Boucle No Clip
-RunService.Stepped:Connect(function()
-    if noclipActive and player.Character then
-        for _, v in pairs(player.Character:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
-        end
-    end
-end)
-
--- Gestion Spawn & Glow
-local function setupChar(char)
-    task.wait(0.1)
-    for _, v in pairs(char:GetChildren()) do
-        if v:IsA("ForceField") then v:Destroy() end
-    end
-    local root = char:WaitForChild("HumanoidRootPart", 5)
-    if root then task.wait(0.5) savedPos = root.CFrame end
-end
-
-player.CharacterAdded:Connect(setupChar)
-if player.Character then setupChar(player.Character) end
-
--- ==========================================
--- INTERFACE GRAPHIQUE
--- ==========================================
 local gui = Instance.new("ScreenGui")
 gui.Name = "NethersStealGui"
 gui.Parent = player:WaitForChild("PlayerGui")
 gui.ResetOnSpawn = false
 
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 360, 0, 310) 
+main.Size = UDim2.new(0, 360, 0, 280) -- Taille originale
 main.Position = UDim2.new(.5,0,.5,0)
 main.AnchorPoint = Vector2.new(.5,.5)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
@@ -126,53 +135,49 @@ local function createButton(text, posY)
     return btn
 end
 
--- ORDRE CHANGÉ ICI
-local bestBtn = createButton("TP TO BEST BRAINROT", 70)
-local stealBtn = createButton("INSTANT STEAL", 135)
-local noclipBtn = createButton("TOGGLE NO CLIP: OFF", 200)
+local tp1Btn = createButton("TP BASE 1", 70)
+local tp2Btn = createButton("TP BASE 2", 135)
+local stealBtn = createButton("INSTANT STEAL", 200)
 
 -- ==========================================
--- LOGIQUE DES BOUTONS
+-- LOGIQUE
 -- ==========================================
 
-bestBtn.MouseButton1Click:Connect(function()
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if root then
-        local oldNoclip = noclipActive
-        noclipActive = true 
-        root.CFrame = TARGET_POS
-        task.wait(0.5) 
-        noclipActive = oldNoclip
-        bestBtn.Text = "TP SUCCESS"
-        task.wait(0.8)
-        bestBtn.Text = "TP TO BEST BRAINROT"
+tp1Btn.MouseButton1Click:Connect(function()
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame = CFrame.new(BASE_1_POS)
+    end
+end)
+
+tp2Btn.MouseButton1Click:Connect(function()
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame = CFrame.new(BASE_2_POS)
     end
 end)
 
 stealBtn.MouseButton1Click:Connect(function()
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if root and savedPos then
         local old = root.CFrame
         root.CFrame = savedPos
-        task.wait(0.2)
+        task.wait(0.3)
         root.CFrame = old
         stealBtn.Text = "STEAL SUCCESS!"
     else
-        stealBtn.Text = "ERROR: NO SPAWN"
+        stealBtn.Text = "WAITING FOR SPAWN..."
     end
-    task.wait(0.8)
+    task.wait(1)
     stealBtn.Text = "INSTANT STEAL"
 end)
 
-noclipBtn.MouseButton1Click:Connect(function()
-    noclipActive = not noclipActive
-    if noclipActive then
-        noclipBtn.Text = "TOGGLE NO CLIP: ON"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-    else
-        noclipBtn.Text = "TOGGLE NO CLIP: OFF"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+-- SAUVEGARDE DU SPAWN
+local function onChar(char)
+    local hrp = char:WaitForChild("HumanoidRootPart", 10)
+    if hrp then
+        task.wait(2) -- Sécurité pour bien être au spawn
+        savedPos = hrp.CFrame
     end
-end)
+end
+
+player.CharacterAdded:Connect(onChar)
+if player.Character then onChar(player.Character) end
